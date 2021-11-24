@@ -8,6 +8,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+
 class ONav_API_Profiler():
 
 
@@ -24,9 +25,8 @@ class ONav_API_Profiler():
                 format='%(asctime)s %(levelname)s \n %(message)s', 
                 datefmt='%H:%M:%S'
             )
-            logging.info('****************** Starting Profiler Tests ******************')
+            logging.info('\n****************** Starting Profiler Tests ******************\n')
 
-        self.datasets = self.get_datasets()
         with open(config_url) as f:
             self.test_config = json.load(f)   
 
@@ -75,23 +75,17 @@ class ONav_API_Profiler():
         return [d for d in json.loads(data.content)]
 
 
-    def get_quantum(self,ds):
-        ds_data = next(item for item in self.datasets if item["id"] == ds)
-        return ds_data['quantum']
-
-
     def get_plot(self,query):
         logging.info('Requesting plot...')
         self.send_req(self.base_url + 'plot/?' + urlencode({'query': json.dumps(query)}) + '&format=json')
 
 
     def profile_test(self):
-        logging.info('****************** Profile Plot Tests ******************')
+        logging.info('\n****************** Profile Plot Tests ******************\n')
         config = self.test_config['profile_plot']
 
         for ds in config['datasets']:
             logging.info("\nDataset: " + ds + "\n")
-            quantum = self.get_quantum(ds)
             for v in config['datasets'][ds]['variables']:
                 logging.info("Variable: " + v)
                 timestamps = self.get_timestamps(ds,v)
@@ -99,7 +93,7 @@ class ONav_API_Profiler():
                     "dataset" : ds,
                     "names" : [],
                     "plotTitle" : "",
-                    "quantum" : quantum,
+                    "quantum" :  config['datasets'][ds]['quantum'],
                     "showmap" : False,
                     "station" : config['station'],
                     "time" : timestamps[-1]['id'], 
@@ -109,12 +103,11 @@ class ONav_API_Profiler():
     
 
     def virtual_mooring_test(self):
-        logging.info('****************** Virtual Mooring Plot Tests ******************')
+        logging.info('\n****************** Virtual Mooring Plot Tests ******************\n')
         config = self.test_config['vm_plot']
 
         for ds in config['datasets']:
             logging.info("\nDataset: " + ds + "\n")
-            quantum = self.get_quantum(ds)
             for v in config['datasets'][ds]['variables']:
                 logging.info("Variable: " + v)
                 timestamps = self.get_timestamps(ds,v)
@@ -127,7 +120,7 @@ class ONav_API_Profiler():
                     "endtime" : timestamps[-1]['id'],
                     "names" : [],
                     "plotTitle" : "",
-                    "quantum" : quantum,
+                    "quantum" :  config['datasets'][ds]['quantum'],
                     "scale" : "-5,30,auto",
                     "showmap" : 0,
                     "starttime" : timestamps[start_idx]['id'], 
@@ -138,12 +131,12 @@ class ONav_API_Profiler():
 
 
     def transect_test(self):
-        logging.info('****************** Transect Plot Tests ******************')
+        logging.info('\n****************** Transect Plot Tests ******************\n')
         config = self.test_config['transect_plot']
 
         for ds in config['datasets']:
             logging.info("----------\nDataset: " + ds + "\n----------")
-            quantum = self.get_quantum(ds)
+            
             for v in config['datasets'][ds]['variables']:
                 logging.info("Variable: " + v)
                 timestamps = self.get_timestamps(ds,v)
@@ -155,7 +148,7 @@ class ONav_API_Profiler():
                     "name" : config['name'],
                     "path" : config['path'], 
                     "plotTitle" : "",
-                    "quantum" : quantum,
+                    "quantum" :  config['datasets'][ds]['quantum'],
                     "scale" : "-5,30,auto",
                     "selectedPlots" : "0,1,1",
                     "showmap" : 1,
@@ -167,12 +160,11 @@ class ONav_API_Profiler():
 
 
     def hovmoller_test(self):
-        logging.info('****************** Hovmoller Plot Tests ******************')
+        logging.info('\n****************** Hovmoller Plot Tests ******************\n')
         config = self.test_config['hovmoller_plot']
 
         for ds in config['datasets']:
             logging.info("\nDataset: " + ds + "\n")
-            quantum = self.get_quantum(ds)
             for v in config['datasets'][ds]['variables']:
                 logging.info("Variable: " + v)
                 timestamps = self.get_timestamps(ds,v)
@@ -186,7 +178,7 @@ class ONav_API_Profiler():
                     "name" : config['name'],
                     "path" : config['path'],
                     "plotTitle" : "",
-                    "quantum" : quantum,
+                    "quantum" :  config['datasets'][ds]['quantum'],
                     "scale" : "-5,30,auto",
                     "showmap" : 1,
                     "starttime" : timestamps[start_idx]['id'],
@@ -196,12 +188,11 @@ class ONav_API_Profiler():
 
 
     def area_test(self):
-        logging.info('****************** Starting Area Plot Tests ******************')
+        logging.info('\n****************** Starting Area Plot Tests ******************\n')
         config = self.test_config['area_plot']
 
         for ds in config['datasets']:
             logging.info("\nDataset: " + ds + "\n")
-            quantum = self.get_quantum(ds)
             for v in config['datasets'][ds]['variables']:
                 logging.info("Variable: " + v)
                 timestamps = self.get_timestamps(ds,v)
@@ -223,7 +214,7 @@ class ONav_API_Profiler():
                     "interp" : "gaussian",
                     "neighbours" : 10,
                     "projection" : "EPSG:3857",
-                    "quantum" : quantum,
+                    "quantum" :  config['datasets'][ds]['quantum'],
                     "quiver" : {"colormap" : "default",
                         "magnitude" : "length",
                         "variable" : config["quiver_variable"]

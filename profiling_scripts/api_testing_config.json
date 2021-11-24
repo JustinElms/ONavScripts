@@ -1,8 +1,14 @@
 {
     "profile_plot" : {
         "datasets" : {
-            "giops_day" : {"variables" : ["votemper"]}, 
-            "riops_fc_3dps" : {"variables" : ["votemper"]}
+            "giops_day" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "day"
+            }, 
+            "riops_fc_3dps" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "hour"
+            }
         },
         "station" : [[45,-45]]
     },
@@ -11,15 +17,15 @@
         "datasets" : {
             "giops_day" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "time_range" : 20
+                "quantum" : "day"
             }, 
             "riops_fc_2dll" : {
                 "variables" : ["votemper", "vosaline", "magwatervel"],
-                "time_range" : 49
+                "quantum" : "day"
             }, 
             "riops_fc_3dps" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "time_range" : 25
+                "quantum" : "day"
             } 
         },
         "station" : [[45,-45]]
@@ -27,8 +33,14 @@
 
     "transect_plot" : {
         "datasets" : {
-            "giops_day" : {"variables" : ["votemper", "vosaline", "sspeed", "magwatervel"]}, 
-            "riops_fc_3dps" : {"variables" : ["votemper", "vosaline", "sspeed", "magwatervel"]}
+            "giops_day" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "day"
+            }, 
+            "riops_fc_3dps" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "hour"
+            }
         },
         "name" : "Flemish Cap",
         "path" : [[47,-52.832],[47,-52.705],[47,-52.58],[47,-52.322],[47,-52.033],
@@ -45,15 +57,15 @@
         "datasets" : {
             "giops_day" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "time_range" : 20
+                "quantum" : "day"
             }, 
             "riops_fc_2dll" : {
                 "variables" : ["votemper", "vosaline", "magwatervel"],
-                "time_range" : 49
+                "quantum" : "day"
             }, 
             "riops_fc_3dps" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "time_range" : 25
+                "quantum" : "day"
             } 
         },
         "name" : "Flemish Cap",
@@ -69,9 +81,18 @@
 
     "area_plot" : {
         "datasets" : {
-            "giops_day" : {"variables" : ["votemper", "vosaline", "sspeed", "magwatervel"]}, 
-            "riops_fc_2dll" : {"variables" : ["votemper", "vosaline", "magwatervel"]}, 
-            "riops_fc_3dps" : {"variables" : ["votemper", "vosaline", "sspeed", "magwatervel"]}
+            "giops_day" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "day"
+            }, 
+            "riops_fc_2dll" : {
+                "variables" : ["votemper", "vosaline", "magwatervel"],
+                "quantum" : "day"
+            }, 
+            "riops_fc_3dps" : {
+                "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
+                "quantum" : "day"
+            } 
         },
         "polygons" : [[[45.3181,-59.3802],[45.559,-56.9418],[45.9945,-57.6699]]],
         "quiver_variable" : "magwatervel"
