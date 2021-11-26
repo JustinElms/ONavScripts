@@ -21,11 +21,11 @@
             }, 
             "riops_fc_2dll" : {
                 "variables" : ["votemper", "vosaline", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             }, 
             "riops_fc_3dps" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             } 
         },
         "station" : [[45,-45]]
@@ -61,11 +61,11 @@
             }, 
             "riops_fc_2dll" : {
                 "variables" : ["votemper", "vosaline", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             }, 
             "riops_fc_3dps" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             } 
         },
         "name" : "Flemish Cap",
@@ -87,11 +87,11 @@
             }, 
             "riops_fc_2dll" : {
                 "variables" : ["votemper", "vosaline", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             }, 
             "riops_fc_3dps" : {
                 "variables" : ["votemper", "vosaline", "sspeed", "magwatervel"],
-                "quantum" : "day"
+                "quantum" : "hour"
             } 
         },
         "polygons" : [[[45.3181,-59.3802],[45.559,-56.9418],[45.9945,-57.6699]]],

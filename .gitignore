@@ -1,3 +1,4 @@
-api_profile_testing.log
-profiling_results/
 .vscode/
+profiler_results/
+*.log
+*.csv
