@@ -33,8 +33,8 @@ class ONav_Profiling_Driver():
         self.save_csv = save_csv
         self.max_attempts = max_attempts
         self.max_time = max_time
-        self.start_time = f'{time.time():.0f}'
-        self.log_filename = f'/dev/shm/{self.file_id}_api_profile_testing_{self.start_time}.log'
+        self.start_time = time.time() 
+        self.log_filename = f'/dev/shm/{self.file_id}_api_profiling.log'
         self.results = {}
 
         if enable_logging:
@@ -48,11 +48,13 @@ class ONav_Profiling_Driver():
 
         with open(config_url) as f:
             self.test_config = json.load(f)   
+            self.test_list = list(self.test_config.keys())
+
 
     def send_req(self, url):
         """
         This method sends the requests to the given url and logs the results and time taken. It 
-        also handles and logs any raised exceptions.
+        also handles and logs raised exceptions.
         """
         logging.info(f'URL: {url}')
         for i in range(self.max_attempts):
@@ -71,7 +73,8 @@ class ONav_Profiling_Driver():
                 else:
                     logging.warning('*** Request failed. ***')  
             except requests.ReadTimeout:
-                logging.warning('*** Client request timed out. ***')
+                end_time = time.time()
+                logging.warning(f'*** Client timed out after {end_time-start_time} seconds (max_time = {self.max_time} seconds). ***')
             except requests.exceptions.ConnectionError:
                 logging.warning('*** Connection aborted. ***')
             
@@ -114,10 +117,10 @@ class ONav_Profiling_Driver():
         results_dict = {}
 
         for ds in config['datasets']:
-            logging.info("\nDataset: " + ds + "\n")
+            logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info("Variable: " + v)
+                logging.info(f"Variable: {v}" + v)
                 timestamps = self.get_timestamps(ds,v)
                 
                 _, resp_time = self.get_plot({
@@ -145,10 +148,10 @@ class ONav_Profiling_Driver():
         results_dict = {}
 
         for ds in config['datasets']:
-            logging.info("\nDataset: " + ds + "\n")
+            logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info("Variable: " + v)
+                logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 start_idx = len(timestamps) - 10
 
@@ -180,10 +183,10 @@ class ONav_Profiling_Driver():
         results_dict = {}
 
         for ds in config['datasets']:
-            logging.info("\nDataset: " + ds + "\n")
+            logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info("Variable: " + v)
+                logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
 
                 _, resp_time = self.get_plot({
@@ -217,10 +220,10 @@ class ONav_Profiling_Driver():
         results_dict = {}
 
         for ds in config['datasets']:
-            logging.info("\nDataset: " + ds + "\n")
+            logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info("Variable: " + v)
+                logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 start_idx = len(timestamps) - 10 
 
@@ -252,10 +255,10 @@ class ONav_Profiling_Driver():
         results_dict = {}
 
         for ds in config['datasets']:
-            logging.info("\nDataset: " + ds + "\n")
+            logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info("Variable: " + v)
+                logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
 
                 _, resp_time = self.get_plot({
@@ -296,24 +299,29 @@ class ONav_Profiling_Driver():
         return results_dict
 
     def run(self):
-        start_time = time.time()
-        logging.info('Profile testing start time: ' + time.ctime(start_time) + ' (' + str(start_time) + ')')
+        logging.info(f'Profile testing start time: {time.ctime(self.start_time)} ({self.start_time:.0f}).')
 
-        self.results['profile'] = self.profile_test()
-        self.results['virtual_mooring'] = self.virtual_mooring_test()
-        self.results['transect'] = self.transect_test()
-        self.results['hovmoller'] = self.hovmoller_test()
-        self.results['area'] = self.area_test()
+        if 'profile_plot' in self.test_list:
+            self.results['profile'] = self.profile_test()
+        if 'vm_plot' in self.test_list:
+            self.results['virtual_mooring'] = self.virtual_mooring_test()
+        if 'transect_plot' in self.test_list:
+            self.results['transect'] = self.transect_test()
+        if 'hovmoller_plot' in self.test_list:
+            self.results['hovmoller'] = self.hovmoller_test()
+        if 'area_plot' in self.test_list:
+            self.results['area'] = self.area_test()
 
         end_time = time.time()
-        logging.info('Profile testing start time: ' + time.ctime(end_time) + ' (' + str(end_time) + ')')
-        logging.info('Time to complete all tests: ' + str(end_time - start_time))
+        logging.info(f'Profile testing start time:  {time.ctime(self.start_time)} ({self.start_time:.0f}).')
+        logging.info(f'Profile testing end time:  {time.ctime(end_time)} ({end_time}).')
+        logging.info(f'Time to complete all tests: {(end_time - self.start_time):.0f} seconds.')
 
         if self.logging:
             shutil.move(self.log_filename, os.getcwd())
 
         if self.save_csv:
-            with open(f'{self.file_id}_api_profiling_results_{self.start_time}.csv', 'a') as csv_stream:
+            with open(f'{self.file_id}_api_profiling_results.csv', 'a') as csv_stream:
                 for key, value in self.results.items():
                     csv_stream.write(key + '\n')
                     df = pd.DataFrame.from_dict(value,  orient='index')
@@ -344,7 +352,7 @@ if __name__ == '__main__':
     """
     # default options
     url = 'https://navigator.oceansdata.ca'
-    config = 'api_profiling_config.json'
+    config = '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json'
     id='test_123'
     max_attempts = 3
     max_time = 120
@@ -365,9 +373,9 @@ if __name__ == '__main__':
         elif o == '--id':
             id = a
         elif o == '-a':
-            max_attempts = a
+            max_attempts = int(a)
         elif o == '-t':
-            max_time = a
+            max_time = int(a)
         elif o == '-l':
             enable_logging = False
         elif o == '-c':
