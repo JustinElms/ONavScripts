@@ -62,13 +62,13 @@ class ONav_Profiling_Driver():
             start_time = time.time()
             try:
                 resp = requests.get(url, timeout=self.max_time)
-                if resp.status_code == 200:
-                    end_time = time.time()
+                end_time = time.time()
+
+                if resp.status_code == 200: 
                     total_time = end_time - start_time
                     logging.info(f'*** Response recieved. ***\n Total request time: {total_time} seconds.')
                     return resp, total_time
                 elif resp.status_code == 504:
-                    end_time = time.time()
                     logging.info(f'*** Server timed-out after {end_time-start_time} seconds. ***')
                 else:
                     logging.warning('*** Request failed. ***')  
