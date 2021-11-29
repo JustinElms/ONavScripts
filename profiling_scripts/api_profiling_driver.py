@@ -3,8 +3,9 @@ import time
 import logging
 import numpy as np
 import pandas as pd
+import getopt
 
-import os, shutil
+import sys, os, shutil
 
 import json
 from urllib.parse import urlencode
@@ -13,14 +14,18 @@ from urllib.parse import urlencode
 class ONav_Profiling_Driver():
 
 
-    def __init__(self, base_url, config_url, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
-        self.base_url = base_url     
+    def __init__(self, base_url, config_url, file_id, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
+        """
+        
+        """
+        self.base_url = base_url + '/api/v1.0/'
+        self.file_id = file_id
         self.logging = enable_logging
         self.save_csv = save_csv
         self.max_attempts = max_attempts
         self.max_time = max_time
         self.start_time = f'{time.time():.0f}'
-        self.log_filename = f'/dev/shm/api_profile_testing_{self.start_time}.log'
+        self.log_filename = f'/dev/shm/{self.file_id}_api_profile_testing_{self.start_time}.log'
         self.results = {}
 
         if enable_logging:
@@ -34,7 +39,6 @@ class ONav_Profiling_Driver():
 
         with open(config_url) as f:
             self.test_config = json.load(f)   
-
 
     def send_req(self, url):
         logging.info('URL: ' + url)
@@ -79,11 +83,11 @@ class ONav_Profiling_Driver():
 
     def get_depths(self, dataset, variable):
         logging.info('Requesting depths...')
-        data, _ = self.send_req(self.base_url +f"depth/?dataset={dataset}&variable={variable}")
+        data, _ = self.send_req(self.base_url + f"depth/?dataset={dataset}&variable={variable}")
         return [d for d in json.loads(data.content)]
 
 
-    def get_plot(self,query):
+    def get_plot(self, query):
         logging.info('Requesting plot...')
         return self.send_req(self.base_url + 'plot/?' + urlencode({'query': json.dumps(query)}) + '&format=json')
 
@@ -293,15 +297,52 @@ class ONav_Profiling_Driver():
             shutil.move(self.log_filename, os.getcwd())
 
         if self.save_csv:
-            with open(f'api_profiling_results_{self.start_time}.csv', 'a') as csv_stream:
+            with open(f'{self.file_id}_api_profiling_results_{self.start_time}.csv', 'a') as csv_stream:
                 for key, value in self.results.items():
                     csv_stream.write(key + '\n')
                     df = pd.DataFrame.from_dict(value,  orient='index')
                     df.to_csv(csv_stream)
                     csv_stream.write('\n')               
-        
+
 
 if __name__ == '__main__':
-    
-    api_profiler = ONav_Profiling_Driver('http://lxc-on-02.ent.dfo-mpo.ca:5000/api/v1.0/', '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json', max_time = 200)
-    api_profiler.run()
+
+    # default options
+    max_attempts = 3
+    max_time = 120
+    enable_logging = True
+    save_csv = True
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], ':a:t:lc', ['url=', 'config=', 'id='])
+    except getopt.GetoptError as err:
+        print(err) 
+        sys.exit()
+
+    for o, a in opts:
+        if o == '--url':
+            url = a
+        elif o == '--config':
+            config = a    
+        elif o == '--id':
+            id = a
+        elif o == '-a':
+            max_attempts = a
+        elif o == '-t':
+            max_time = a
+        elif o == '-l':
+            enable_logging = False
+        elif o == '-c':
+            save_csv = False
+
+    api_profiler = ONav_Profiling_Driver(
+                    url,
+                    config,
+                    id,
+                    max_attempts,
+                    max_time,
+                    enable_logging,
+                    save_csv
+                )
+
+    api_profiler.run()    
