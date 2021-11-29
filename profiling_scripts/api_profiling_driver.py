@@ -16,7 +16,16 @@ class ONav_Profiling_Driver():
 
     def __init__(self, base_url, config_url, file_id, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
         """
-        
+        Initializes the profiling driver. Input arguments are:
+
+        base_url: the url of the Navigator intance being profiled
+        config_url: the filepath/name of the configuration file
+        file_id: a unique identifier for output file names
+        max_attempts: the number of attempts allowed to connect to API endpoints (default 3)
+        max_time: the maxium time to wait for a response from each endpoint in seconds (default 120)
+        enable_logging: Enables logging of the profile driver (default True)
+        save_csv: Enables csv output of client-side results (default True)
+
         """
         self.base_url = base_url + '/api/v1.0/'
         self.file_id = file_id
@@ -41,25 +50,32 @@ class ONav_Profiling_Driver():
             self.test_config = json.load(f)   
 
     def send_req(self, url):
-        logging.info('URL: ' + url)
+        """
+        This method sends the requests to the given url and logs the results and time taken. It 
+        also handles and logs any raised exceptions.
+        """
+        logging.info(f'URL: {url}')
         for i in range(self.max_attempts):
-            logging.info('Attempt ' + str(i+1) + ':')
+            logging.info(f'Attempt {i+1}:')
             start_time = time.time()
             try:
                 resp = requests.get(url, timeout=self.max_time)
                 if resp.status_code == 200:
                     end_time = time.time()
                     total_time = end_time - start_time
-                    logging.info('*** Response recieved. ***\n Total request time: ' + str(total_time))
+                    logging.info(f'*** Response recieved. ***\n Total request time: {total_time} seconds.')
                     return resp, total_time
+                elif resp.status_code == 504:
+                    end_time = time.time()
+                    logging.info(f'*** Server timed-out after {end_time-start_time} seconds. ***')
                 else:
                     logging.warning('*** Request failed. ***')  
             except requests.ReadTimeout:
-                logging.warning('*** Request timed out. ***')
+                logging.warning('*** Client request timed out. ***')
             except requests.exceptions.ConnectionError:
                 logging.warning('*** Connection aborted. ***')
             
-        logging.critical('Could not complete request after ' + str(self.max_attempts) + ' attempt(s).')
+        logging.critical(f'Could not complete request after {self.max_attempts} attempt(s).')
         return [], np.nan
 
 
@@ -306,8 +322,30 @@ class ONav_Profiling_Driver():
 
 
 if __name__ == '__main__':
+    """
+    The api_profiling_driver scripts is intendend to target Ocean Navigator API endpoints as specified in a
+    configuration file so that profiles for these functions can be collected for performance analysis while 
+    collecting client-side metrics for each. This script can log the status of each request and produce a csv 
+    file contained the tabulated results (enabled by default). It is designed to be run from the command line
+    with flags specifying file locaitons and options as described in the example below:
 
+    python api_profiling_driver.py --url https://navigator.oceansdata.ca --config api_profiling_config.json --id usr_1 -a 3 -t 120 -l -c
+
+    where:
+
+    --url: the url of the Navigator instance that's being profiled
+    --config: the path of configuration file
+    --id: a unique identifer for output file names 
+    -a: the number of attempts to reach each end point allowed 
+    -t: the maxium time to wait for a response from each endpoint
+    -l: use this flag to DISABLE logging
+    -c: use this flag to DISABLE csv output of client-side results
+
+    """
     # default options
+    url = 'https://navigator.oceansdata.ca'
+    config = 'api_profiling_config.json'
+    id='test_123'
     max_attempts = 3
     max_time = 120
     enable_logging = True
