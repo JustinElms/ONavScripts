@@ -1,15 +1,9 @@
 import numpy as np
-import getopt
 import defopt
 import matplotlib.pyplot as plt
 import csv
-import sys
-
 
 def main(fname : str, id : str):
-
-    print(fname)
-    print(id)
 
     with open(fname,'r') as csvfile:
         plots = csv.reader(csvfile, delimiter = ',')
