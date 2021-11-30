@@ -68,10 +68,12 @@ class ONav_Profiling_Driver():
                     total_time = end_time - start_time
                     logging.info(f'*** Response recieved. ***\n Total request time: {total_time} seconds.')
                     return resp, total_time
+                elif resp.status_code == 500:
+                    logging.info(f'*** Request failed. ***\n{resp.content}')
                 elif resp.status_code == 504:
                     logging.info(f'*** Server timed-out after {end_time-start_time} seconds. ***')
                 else:
-                    logging.warning('*** Request failed. ***')  
+                    logging.warning('*** Request failed. ***\nReason unknown.')  
             except requests.ReadTimeout:
                 end_time = time.time()
                 logging.warning(f'*** Client timed out after {end_time-start_time} seconds (max_time = {self.max_time} seconds). ***')
@@ -353,7 +355,7 @@ if __name__ == '__main__':
     # default options
     url = 'https://navigator.oceansdata.ca'
     config = '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json'
-    id='test_123'
+    id='test_usr'
     max_attempts = 3
     max_time = 120
     enable_logging = True
