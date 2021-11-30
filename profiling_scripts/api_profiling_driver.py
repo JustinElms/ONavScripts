@@ -120,7 +120,7 @@ class ONav_Profiling_Driver():
             logging.info(f"\nDataset: {ds}\n")
             ds_dict = {}
             for v in config['datasets'][ds]['variables']:
-                logging.info(f"Variable: {v}" + v)
+                logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 
                 _, resp_time = self.get_plot({
