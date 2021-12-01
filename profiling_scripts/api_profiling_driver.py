@@ -2,8 +2,8 @@ import requests
 import time
 import logging
 import numpy as np
-import pandas as pd
 import getopt
+import csv
 
 import sys, os, shutil
 
@@ -67,7 +67,7 @@ class ONav_Profiling_Driver():
                 if resp.status_code == 200: 
                     total_time = end_time - start_time
                     logging.info(f'*** Response recieved. ***\n Total request time: {total_time} seconds.')
-                    return resp, total_time
+                    return resp, start_time, total_time
                 elif resp.status_code == 500:
                     logging.info(f'*** Request failed. ***\n{resp.content}')
                 elif resp.status_code == 504:
@@ -81,30 +81,30 @@ class ONav_Profiling_Driver():
                 logging.warning('*** Connection aborted. ***')
             
         logging.critical(f'Could not complete request after {self.max_attempts} attempt(s).')
-        return [], np.nan
+        return [], start_time, np.nan
 
 
     def get_datasets(self):
         logging.info('Requesting dataset meta data...')
-        data, _ = self.send_req(self.base_url + 'datasets/')
+        data, _, _ = self.send_req(self.base_url + 'datasets/')
         return [d for d in json.loads(data.content)]
 
 
     def get_variables(self, dataset):
         logging.info('Requesting variables...')
-        data, _ = self.send_req(self.base_url + f'variables/?dataset={dataset}')
+        data, _, _ = self.send_req(self.base_url + f'variables/?dataset={dataset}')
         return [d for d in json.loads(data.content)]
 
 
     def get_timestamps(self, dataset, variable): 
         logging.info('Requesting timestamps...')
-        data, _ = self.send_req(self.base_url + f"timestamps/?dataset={dataset}&variable={variable}")  
+        data, _, _ = self.send_req(self.base_url + f"timestamps/?dataset={dataset}&variable={variable}")  
         return [d for d in json.loads(data.content)]       
 
 
     def get_depths(self, dataset, variable):
         logging.info('Requesting depths...')
-        data, _ = self.send_req(self.base_url + f"depth/?dataset={dataset}&variable={variable}")
+        data, _, _ = self.send_req(self.base_url + f"depth/?dataset={dataset}&variable={variable}")
         return [d for d in json.loads(data.content)]
 
 
@@ -116,16 +116,15 @@ class ONav_Profiling_Driver():
     def profile_test(self):
         logging.info('\n****************** Profiling Profile Plot ******************\n')
         config = self.test_config['profile_plot']
-        results_dict = {}
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
-            ds_dict = {}
             for v in config['datasets'][ds]['variables']:
                 logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 
-                _, resp_time = self.get_plot({
+                _, start_time, resp_time = self.get_plot({
                                     "dataset" : ds,
                                     "names" : [],
                                     "plotTitle" : "",
@@ -137,27 +136,24 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                ds_dict[v] = resp_time
+                results.append([ds, v, start_time, resp_time])
 
-            results_dict[ds] = ds_dict
-
-        return results_dict
+        return results 
     
 
     def virtual_mooring_test(self):
         logging.info('\n****************** Profiling Virtual Mooring Plot ******************\n')
         config = self.test_config['vm_plot']
-        results_dict = {}
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
-            ds_dict = {}
             for v in config['datasets'][ds]['variables']:
                 logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 start_idx = len(timestamps) - 10
 
-                _, resp_time = self.get_plot({
+                _, start_time, resp_time = self.get_plot({
                                     "colormap" : "default",
                                     "dataset" : ds,
                                     "depth" : 0,
@@ -173,25 +169,22 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                ds_dict[v] = resp_time
+                results.append([ds, v, start_time, resp_time])
 
-            results_dict[ds] = ds_dict
-
-        return results_dict
+        return results
 
     def transect_test(self):
         logging.info('\n****************** Profiling Transect Plot ******************\n')
         config = self.test_config['transect_plot']
-        results_dict = {}
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
-            ds_dict = {}
             for v in config['datasets'][ds]['variables']:
                 logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
 
-                _, resp_time = self.get_plot({
+                _, start_time, resp_time = self.get_plot({
                                     "colormap" : "default",
                                     "dataset" : ds,
                                     "depth_limit" : 0,
@@ -209,27 +202,24 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                ds_dict[v] = resp_time
+                results.append([ds, v, start_time, resp_time])
 
-            results_dict[ds] = ds_dict
-
-        return results_dict                                
+        return results                            
 
 
     def hovmoller_test(self):
         logging.info('\n****************** Profiling Hovmoller Plot ******************\n')
         config = self.test_config['hovmoller_plot']
-        results_dict = {}
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
-            ds_dict = {}
             for v in config['datasets'][ds]['variables']:
                 logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
                 start_idx = len(timestamps) - 10 
 
-                _, resp_time = self.get_plot({
+                _, start_time, resp_time = self.get_plot({
                                     "colormap" : "default",
                                     "dataset" : ds,
                                     "depth" : 0,
@@ -245,25 +235,22 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                ds_dict[v] = resp_time
+                results.append([ds, v, start_time, resp_time])
 
-            results_dict[ds] = ds_dict
-
-        return results_dict
+        return results
 
     def area_test(self):
         logging.info('\n****************** Profiling Area Plot ******************\n')
         config = self.test_config['area_plot']
-        results_dict = {}
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
-            ds_dict = {}
             for v in config['datasets'][ds]['variables']:
                 logging.info(f"Variable: {v}")
                 timestamps = self.get_timestamps(ds,v)
 
-                _, resp_time = self.get_plot({
+                _, start_time, resp_time = self.get_plot({
                                     "area":[{"innerrings" : [],
                                         "name" : "",
                                         "polygons" : config['polygons']}
@@ -294,11 +281,20 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })                
 
-                ds_dict[v] = resp_time
+                results.append([ds, v, start_time, resp_time])
 
-            results_dict[ds] = ds_dict
+        return results
 
-        return results_dict
+
+    def write_csv(self):
+        with open(f'{self.file_id}_api_profiling_results.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter = ',')
+            for key, value in self.results.items():
+                writer.writerow([key])
+                for v in value:
+                    writer.writerow(v)
+                writer.writerow([])
+
 
     def run(self):
         logging.info(f'Profile testing start time: {time.ctime(self.start_time)} ({self.start_time:.0f}).')
@@ -323,12 +319,7 @@ class ONav_Profiling_Driver():
             shutil.move(self.log_filename, os.getcwd())
 
         if self.save_csv:
-            with open(f'{self.file_id}_api_profiling_results.csv', 'a') as csv_stream:
-                for key, value in self.results.items():
-                    csv_stream.write(key + '\n')
-                    df = pd.DataFrame.from_dict(value,  orient='index')
-                    df.to_csv(csv_stream)
-                    csv_stream.write('\n')               
+            self.write_csv()          
 
 
 if __name__ == '__main__':
@@ -355,7 +346,7 @@ if __name__ == '__main__':
     # default options
     url = 'https://navigator.oceansdata.ca'
     config = '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json'
-    id='test_usr'
+    id=f'test_usr_{np.random.randint(1,100)}'
     max_attempts = 3
     max_time = 120
     enable_logging = True
