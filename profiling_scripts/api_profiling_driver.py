@@ -301,7 +301,7 @@ class ONav_Profiling_Driver():
                     diff_times = plot_times[np.where(diff > 0)]
                     min_diff = np.min(diff_times)
                     path = [i for i in plot_profs if str(min_diff) in i]
-                    d.append(path)
+                    d.append(path[0])
 
 
     def write_csv(self):
