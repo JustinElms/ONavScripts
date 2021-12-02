@@ -14,22 +14,26 @@ from urllib.parse import urlencode
 class ONav_Profiling_Driver():
 
 
-    def __init__(self, base_url, config_url, file_id, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
+    def __init__(self, base_url, config_url, prof_path, file_id, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
         """
         Initializes the profiling driver. Input arguments are:
 
         base_url: the url of the Navigator intance being profiled
         config_url: the filepath/name of the configuration file
         file_id: a unique identifier for output file names
+        prof_path: the path to the directory containing server profiling results
         max_attempts: the number of attempts allowed to connect to API endpoints (default 3)
         max_time: the maxium time to wait for a response from each endpoint in seconds (default 120)
         enable_logging: Enables logging of the profile driver (default True)
         save_csv: Enables csv output of client-side results (default True)
 
         """
+        if base_url[-1] == '/':
+            base_url = base_url[:-1]
         self.base_url = base_url + '/api/v1.0/'
         self.file_id = file_id
         self.logging = enable_logging
+        self.prof_path = prof_path
         self.save_csv = save_csv
         self.max_attempts = max_attempts
         self.max_time = max_time
@@ -116,7 +120,7 @@ class ONav_Profiling_Driver():
     def profile_test(self):
         logging.info('\n****************** Profiling Profile Plot ******************\n')
         config = self.test_config['profile_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -144,7 +148,7 @@ class ONav_Profiling_Driver():
     def virtual_mooring_test(self):
         logging.info('\n****************** Profiling Virtual Mooring Plot ******************\n')
         config = self.test_config['vm_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -176,7 +180,7 @@ class ONav_Profiling_Driver():
     def transect_test(self):
         logging.info('\n****************** Profiling Transect Plot ******************\n')
         config = self.test_config['transect_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -210,7 +214,7 @@ class ONav_Profiling_Driver():
     def hovmoller_test(self):
         logging.info('\n****************** Profiling Hovmoller Plot ******************\n')
         config = self.test_config['hovmoller_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -242,7 +246,7 @@ class ONav_Profiling_Driver():
     def area_test(self):
         logging.info('\n****************** Profiling Area Plot ******************\n')
         config = self.test_config['area_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time']]
+        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -285,6 +289,20 @@ class ONav_Profiling_Driver():
 
         return results
 
+    def get_profile_paths(self):
+        prof_files = os.listdir(self.prof_path)
+        plot_profs = [p for p in prof_files if 'plot' in p]
+        plot_times = np.array([p.split('.')[-2] for p in plot_profs]).astype(np.int)
+        for data in self.results.values():
+            for d in data:
+                if d[0] != 'Dataset' and not np.isnan(d[3]):
+                    time = d[-2]
+                    diff = plot_times - np.floor(time)
+                    diff_times = plot_times[np.where(diff > 0)]
+                    min_diff = np.min(diff_times)
+                    path = [i for i in plot_profs if str(min_diff) in i]
+                    d.append(path)
+
 
     def write_csv(self):
         with open(f'{self.file_id}_api_profiling_results.csv', 'w', newline='') as csvfile:
@@ -318,6 +336,9 @@ class ONav_Profiling_Driver():
         if self.logging:
             shutil.move(self.log_filename, os.getcwd())
 
+        if self.prof_path:
+            self.get_profile_paths()
+
         if self.save_csv:
             self.write_csv()          
 
@@ -336,6 +357,7 @@ if __name__ == '__main__':
 
     --url: the url of the Navigator instance that's being profiled
     --config: the path of configuration file
+    --prof: the path to the directory containing server profiling results
     --id: a unique identifer for output file names 
     -a: the number of attempts to reach each end point allowed 
     -t: the maxium time to wait for a response from each endpoint
@@ -346,14 +368,15 @@ if __name__ == '__main__':
     # default options
     url = 'https://navigator.oceansdata.ca'
     config = '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json'
-    id=f'test_usr_{np.random.randint(1,100)}'
+    prof_path = None
+    id = f'test_usr_{np.random.randint(1,100)}'
     max_attempts = 3
     max_time = 120
     enable_logging = True
     save_csv = True
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], ':a:t:lc', ['url=', 'config=', 'id='])
+        opts, args = getopt.getopt(sys.argv[1:], ':a:t:lc', ['url=', 'config=', 'prof=', 'id='])
     except getopt.GetoptError as err:
         print(err) 
         sys.exit()
@@ -363,6 +386,8 @@ if __name__ == '__main__':
             url = a
         elif o == '--config':
             config = a    
+        elif o == '--prof':
+            prof_path = a   
         elif o == '--id':
             id = a
         elif o == '-a':
@@ -377,6 +402,7 @@ if __name__ == '__main__':
     api_profiler = ONav_Profiling_Driver(
                     url,
                     config,
+                    prof_path,
                     id,
                     max_attempts,
                     max_time,
