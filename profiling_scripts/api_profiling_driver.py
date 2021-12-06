@@ -14,13 +14,13 @@ from urllib.parse import urlencode
 class ONav_Profiling_Driver():
 
 
-    def __init__(self, base_url, config_url, prof_path, file_id, max_attempts = 3, max_time = 120, enable_logging = True, save_csv = True):
+    def __init__(self, base_url, config_url, csv_file, prof_path, user_id, max_attempts = 3, max_time = 120):
         """
         Initializes the profiling driver. Input arguments are:
 
         base_url: the url of the Navigator intance being profiled
         config_url: the filepath/name of the configuration file
-        file_id: a unique identifier for output file names
+        user_id: a unique identifier for output file names
         prof_path: the path to the directory containing server profiling results
         max_attempts: the number of attempts allowed to connect to API endpoints (default 3)
         max_time: the maxium time to wait for a response from each endpoint in seconds (default 120)
@@ -31,24 +31,22 @@ class ONav_Profiling_Driver():
         if base_url[-1] == '/':
             base_url = base_url[:-1]
         self.base_url = base_url + '/api/v1.0/'
-        self.file_id = file_id
-        self.logging = enable_logging
+        self.csv_file = csv_file
+        self.user_id = user_id
         self.prof_path = prof_path
-        self.save_csv = save_csv
         self.max_attempts = max_attempts
         self.max_time = max_time
         self.start_time = time.time() 
-        self.log_filename = f'/dev/shm/{self.file_id}_api_profiling.log'
-        self.results = {}
+        self.log_filename = f'/dev/shm/{self.user_id}_api_profiling.log'
+        self.results = []
 
-        if enable_logging:
-            logging.basicConfig(
-                filename = self.log_filename, 
-                level = logging.DEBUG, 
-                format = '%(created)f %(asctime)s %(levelname)s \n %(message)s', 
-                datefmt = '%H:%M:%S'
-            )
-            logging.info('\n****************** Starting Profile Driver ******************\n')
+        logging.basicConfig(
+            filename = self.log_filename, 
+            level = logging.DEBUG, 
+            format = '%(created)f %(asctime)s %(levelname)s \n %(message)s', 
+            datefmt = '%H:%M:%S'
+        )
+        logging.info('\n****************** Starting Profile Driver ******************\n')
 
         with open(config_url) as f:
             self.test_config = json.load(f)   
@@ -70,6 +68,8 @@ class ONav_Profiling_Driver():
 
                 if resp.status_code == 200: 
                     total_time = end_time - start_time
+                    if total_time < 1:
+                        time.sleep(1)
                     logging.info(f'*** Response recieved. ***\n Total request time: {total_time} seconds.')
                     return resp, start_time, total_time
                 elif resp.status_code == 500:
@@ -117,10 +117,13 @@ class ONav_Profiling_Driver():
         return self.send_req(self.base_url + 'plot/?' + urlencode({'query': json.dumps(query)}) + '&format=json')
 
 
+    def format_time(self, in_time):
+        return time.strftime("%Y.%m.%d-%H:%M:%S", time.gmtime(in_time))
+
+
     def profile_test(self):
         logging.info('\n****************** Profiling Profile Plot ******************\n')
         config = self.test_config['profile_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -140,15 +143,12 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                results.append([ds, v, start_time, resp_time])
-
-        return results 
+                self.results.append(['profile', ds, v, start_time, resp_time])
     
 
     def virtual_mooring_test(self):
         logging.info('\n****************** Profiling Virtual Mooring Plot ******************\n')
         config = self.test_config['vm_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -173,14 +173,12 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                results.append([ds, v, start_time, resp_time])
+                self.results.append(['virtual mooring', ds, v, start_time, resp_time])
 
-        return results
 
     def transect_test(self):
         logging.info('\n****************** Profiling Transect Plot ******************\n')
         config = self.test_config['transect_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -206,15 +204,12 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                results.append([ds, v, start_time, resp_time])
-
-        return results                            
+                self.results.append(['transect', ds, v, start_time, resp_time])                         
 
 
     def hovmoller_test(self):
         logging.info('\n****************** Profiling Hovmoller Plot ******************\n')
         config = self.test_config['hovmoller_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -239,14 +234,12 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })
 
-                results.append([ds, v, start_time, resp_time])
+                self.results.append(['hovmoller', ds, v, start_time, resp_time])
 
-        return results
 
     def area_test(self):
         logging.info('\n****************** Profiling Area Plot ******************\n')
         config = self.test_config['area_plot']
-        results = [['Dataset', 'Variable', 'Start Time', 'Response Time', 'Profile File Path']]
 
         for ds in config['datasets']:
             logging.info(f"\nDataset: {ds}\n")
@@ -285,62 +278,68 @@ class ONav_Profiling_Driver():
                                     "variable" : v
                                 })                
 
-                results.append([ds, v, start_time, resp_time])
+                self.results.append(['area', ds, v, start_time, resp_time])
 
-        return results
 
     def get_profile_paths(self):
         prof_files = os.listdir(self.prof_path)
         plot_profs = [p for p in prof_files if 'plot' in p]
         plot_times = np.array([p.split('.')[-2] for p in plot_profs]).astype(np.int)
-        for data in self.results.values():
-            for d in data:
-                if d[0] != 'Dataset' and not np.isnan(d[3]):
-                    time = d[-2]
+        for row in self.results:
+            if row[0] != 'Dataset' and not np.isnan(row[3]):
+                if self.prof_path:
+                    time = row[-2]
                     diff = plot_times - np.floor(time)
                     diff_times = plot_times[np.where(diff > 0)]
                     min_diff = np.min(diff_times)
-                    path = [i for i in plot_profs if str(min_diff) in i]
-                    d.append(path[0])
+                    prof_name = [i for i in plot_profs if str(min_diff) in i][0]
+                    prof_renamed = f'{self.prof_path}/{self.format_time(time)}_{self.user_id}_{row[0]}_{row[1]}_{row[2]}.prof'
+                    os.rename(f'{self.prof_path}/{prof_name}', prof_renamed)
+                    row.append(prof_renamed)
+                else:
+                    row.append('')
 
 
     def write_csv(self):
-        with open(f'{self.file_id}_api_profiling_results.csv', 'w', newline='') as csvfile:
+        if self.csv_file:
+            csv_name = self.csv_file
+        else: 
+            csv_name = f'{self.user_id}_api_profiling_results.csv'
+
+        with open(csv_name, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter = ',')
-            for key, value in self.results.items():
-                writer.writerow([key])
-                for v in value:
-                    writer.writerow(v)
-                writer.writerow([])
+
+            if os.stat(csv_name).st_size == 0:
+                writer.writerow(['Test', 'Dataset', 'Variable', 'Start Time', 'Response Time (s)', 'Profile File Path'])
+            for row in self.results:
+                writer.writerow([*row[:3],self.format_time(row[3]),f'{row[4]:.4f}',row[5]])
 
 
     def run(self):
         logging.info(f'Profile testing start time: {time.ctime(self.start_time)} ({self.start_time:.0f}).')
 
         if 'profile_plot' in self.test_list:
-            self.results['profile'] = self.profile_test()
+            self.profile_test()
         if 'vm_plot' in self.test_list:
-            self.results['virtual_mooring'] = self.virtual_mooring_test()
+            self.virtual_mooring_test()
         if 'transect_plot' in self.test_list:
-            self.results['transect'] = self.transect_test()
+            self.transect_test()
         if 'hovmoller_plot' in self.test_list:
-            self.results['hovmoller'] = self.hovmoller_test()
+            self.hovmoller_test()
         if 'area_plot' in self.test_list:
-            self.results['area'] = self.area_test()
+            self.area_test()
 
         end_time = time.time()
         logging.info(f'Profile testing start time:  {time.ctime(self.start_time)} ({self.start_time:.0f}).')
         logging.info(f'Profile testing end time:  {time.ctime(end_time)} ({end_time}).')
         logging.info(f'Time to complete all tests: {(end_time - self.start_time):.0f} seconds.')
 
-        if self.logging:
-            shutil.move(self.log_filename, os.getcwd())
+        shutil.move(self.log_filename, os.getcwd())
 
         if self.prof_path:
             self.get_profile_paths()
 
-        if self.save_csv:
-            self.write_csv()          
+        self.write_csv()          
 
 
 if __name__ == '__main__':
@@ -361,22 +360,19 @@ if __name__ == '__main__':
     --id: a unique identifer for output file names 
     -a: the number of attempts to reach each end point allowed 
     -t: the maxium time to wait for a response from each endpoint
-    -l: use this flag to DISABLE logging
-    -c: use this flag to DISABLE csv output of client-side results
-
     """
+
     # default options
     url = 'https://navigator.oceansdata.ca'
     config = '/home/ubuntu/ONavScripts/profiling_scripts/api_profiling_config.json'
+    csv_file = None
     prof_path = None
     id = f'test_usr_{np.random.randint(1,100)}'
     max_attempts = 3
     max_time = 120
-    enable_logging = True
-    save_csv = True
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], ':a:t:lc', ['url=', 'config=', 'prof=', 'id='])
+        opts, args = getopt.getopt(sys.argv[1:], ':a:t:', ['url=', 'config=', 'csv=', 'prof=', 'id='])
     except getopt.GetoptError as err:
         print(err) 
         sys.exit()
@@ -400,14 +396,34 @@ if __name__ == '__main__':
             save_csv = False
 
     api_profiler = ONav_Profiling_Driver(
-                    url,
-                    config,
-                    prof_path,
-                    id,
-                    max_attempts,
-                    max_time,
-                    enable_logging,
-                    save_csv
-                )
-
+                        url,
+                        config,
+                        csv_file,
+                        prof_path,
+                        id,
+                        max_attempts,
+                        max_time
+                    )
     api_profiler.run()    
+
+
+"""
+TODO:
+Get git hash. One possible way: 
+
+pip install gitpython
+
+import git
+repo = git.Repo(search_parent_directories=True)
+sha = repo.head.object.hexsha 
+
+Or:
+
+import subprocess
+
+def get_git_revision_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+def get_git_revision_short_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+"""
