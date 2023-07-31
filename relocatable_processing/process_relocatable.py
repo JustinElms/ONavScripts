@@ -1,10 +1,11 @@
 import argparse
+import os
 
 import numpy as np
 import xarray as xr
 
 
-def process_relocatable(input_file=None, output_file=None) -> None:
+def process_relocatable(input_file, output_file) -> None:
     # load input data
     input_ds = xr.open_dataset(input_file)
 
@@ -48,8 +49,7 @@ def process_relocatable(input_file=None, output_file=None) -> None:
 
         for variable in output_variables.items():
             input_data = input_ds[variable[0]].data[:, n]
-            output_shape = variable[1][1][:, lat_idx, lon_idx].shape
-            variable[1][1][:, lat_idx, lon_idx] = input_data.reshape(output_shape)
+            variable[1][1][:, lat_idx, lon_idx] = input_data.reshape((3, 1))
 
     # create xarray dataset from output data
     nc_out = xr.Dataset(data_vars=output_variables, coords=output_coords)
@@ -59,13 +59,10 @@ def process_relocatable(input_file=None, output_file=None) -> None:
 
 
 if __name__ == "__main__":
-    input = None
-    output = None
-
     parser = argparse.ArgumentParser(
         prog="process_relocatable",
         description="Converts relocatable model output data to usergrid with \
-            ONAV compatable coordinates.",
+            ONAV compatable coordinates and timestamp.",
     )
 
     parser.add_argument("-i", "--input")

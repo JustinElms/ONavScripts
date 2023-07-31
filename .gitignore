@@ -3,3 +3,4 @@ profiler_results/
 *.log
 *.csv
 *.png
+*.nc
