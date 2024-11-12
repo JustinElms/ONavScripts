@@ -6,7 +6,7 @@ import xarray as xr
 
 def update_timestamps() -> None:
     output_dir = "/data/gsl_daily_mod"
-    years = np.arange(1970, 2100)
+    years = np.arange(1972, 2100)
     for year in years:
         file = Path(f"/data/gsl_daily/CCSI_HF_{year}_icemod.nc")
         print(file.name)
@@ -20,6 +20,10 @@ def update_timestamps() -> None:
         dates = np.arange(
             np.datetime64(f"{year}-01-01"), np.datetime64(f"{year + 1}-01-01")
         )
+        try:
+            dates = np.delete(dates, np.where(dates == np.datetime64(f"{year}-02-29")))
+        except ValueError:
+            pass
         timestamps = dates.astype("datetime64[s]") - np.datetime64("1950-01-01")
         timestamps = timestamps.astype(int)
 
