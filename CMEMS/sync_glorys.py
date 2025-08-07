@@ -2,6 +2,10 @@ import pickle
 
 import copernicusmarine
 
+logged_in = copernicusmarine.login(check_credentials_valid=True)
+if not logged_in:
+    copernicusmarine.login()
+
 prod_id = "GLOBAL_MULTIYEAR_PHY_001_030"
 datasets = [
     "cmems_mod_glo_phy_my_0.083deg_P1D-m",
