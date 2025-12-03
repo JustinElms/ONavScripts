@@ -32,7 +32,28 @@ def get_timestamps(start_time: str, end_time: str) -> np.array:
     return np.unique(timestamps)
 
 
-def requestFile(lat, lon, start_time, end_time) -> pd.DataFrame:
+def get_nearest_depth_idx(depth: float) -> int:
+    url = "https://www.oceannavigator.ca/api/v2.0/dataset/cmems_daily/thetao/depths"
+
+    resp = requests.get(url)
+
+    if resp.status_code == 200:
+        data = resp.json()[2:]
+
+        ids = [d["id"] for d in data]
+        depths = [d["value"] for d in data]
+        depths = np.array(depths)
+        depth_int = [int(d["value"].replace("m", "")) for d in data]
+        depth_int = np.array(depth_int)
+        diff = np.abs(depth_int - depth)
+        diff_idx = np.argwhere(diff == np.nanmin(diff)).squeeze()
+
+        return str(depths[diff_idx]), ids[diff_idx]
+    
+    return "0.00 m", 0
+
+
+def requestFile(lat, lon, start_time, end_time, depth, depth_idx) -> pd.DataFrame:
     # json object for the query
     query = {
         "dataset": "cmems_daily",
@@ -46,7 +67,7 @@ def requestFile(lat, lon, start_time, end_time) -> pd.DataFrame:
         "variable_range": [None],
         "starttime": int(start_time),
         "endtime": int(end_time),
-        "depth": 0,
+        "depth": str(depth_idx),
         "colormap": "default",
         "interp": "gaussian",
         "radius": 25,
@@ -67,7 +88,6 @@ def requestFile(lat, lon, start_time, end_time) -> pd.DataFrame:
     if response.status_code == 200:
         try:
             data_strs = response.content.decode("utf-8").split("\n")
-            depth = data_strs[2].split(" ")[-1]
             data = "\n".join(data_strs[3:])
             df = pd.read_csv(io.StringIO(data))
             df.insert(loc=3, column="Depth", value=depth)
@@ -88,7 +108,19 @@ if __name__ == "__main__":
         "end_time",
         help="End date of timeseries in YYYY-MM-DD format (e.g. 2016-08-01).",
     )
+    parser.add_argument(
+        "--depth",
+        "-d",
+        type=float,
+        help="Requested depth in meters. Will return nearest model level.",
+    )
     args = parser.parse_args()
+
+    if args.depth:
+        depth, depth_idx = get_nearest_depth_idx(args.depth)
+    else:
+        depth = "0.00 m"
+        depth_idx = 0
 
     timestamps = get_timestamps(args.start_time, args.end_time)
 
@@ -96,7 +128,7 @@ if __name__ == "__main__":
 
     for t0, t1 in zip(timestamps, timestamps[1:]):
         print(f"Downloading timestamps {t0}...{t1}")
-        data = requestFile(args.lat, args.lon, t0, t1)
+        data = requestFile(args.lat, args.lon, t0, t1, depth, depth_idx)
 
         if not isinstance(data, pd.DataFrame):
             continue
@@ -108,5 +140,6 @@ if __name__ == "__main__":
 
     csv_data.reset_index(drop=True, inplace=True)
     csv_data.to_csv(
-        f"CMEMS_timeseries_{args.lat}_{args.lon}_{args.start_time}_{args.end_time}.csv"
+        f"CMEMS_timeseries_{args.lat}_{args.lon}_{args.start_time}_{args.end_time}_{depth}.csv",
+        index=False
     )
