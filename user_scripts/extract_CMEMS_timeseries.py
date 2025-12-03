@@ -49,7 +49,7 @@ def get_nearest_depth_idx(depth: float) -> int:
         diff_idx = np.argwhere(diff == np.nanmin(diff)).squeeze()
 
         return str(depths[diff_idx]), ids[diff_idx]
-    
+
     return "0.00 m", 0
 
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         "--depth",
         "-d",
         type=float,
-        help="Requested depth in meters. Will return nearest model level.",
+        help="Requested depth in meters (e.g. 100 will get nearest level to 100 m). Optional - default is 0 (surface).",
     )
     args = parser.parse_args()
 
@@ -139,7 +139,8 @@ if __name__ == "__main__":
             csv_data = pd.concat([csv_data, data])
 
     csv_data.reset_index(drop=True, inplace=True)
+    csv_data.drop_duplicates(inplace=True)
     csv_data.to_csv(
         f"CMEMS_timeseries_{args.lat}_{args.lon}_{args.start_time}_{args.end_time}_{depth}.csv",
-        index=False
+        index=False,
     )
