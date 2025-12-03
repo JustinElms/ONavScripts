@@ -58,7 +58,7 @@ def requestFile(lat, lon, start_time, end_time, depth, depth_idx) -> pd.DataFram
     query = {
         "dataset": "cmems_daily",
         "plotTitle": "",
-        "point": [[lat, lon]],
+        "station": [[lat, lon]],
         "showmap": 0,
         "size": "10x7",
         "dpi": 144,
@@ -98,8 +98,8 @@ def requestFile(lat, lon, start_time, end_time, depth, depth_idx) -> pd.DataFram
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("lat", help="Latitude value (e.g. -45.0).")
-    parser.add_argument("lon", help="Longitude value (e.g. 51.2).")
+    parser.add_argument("lat", type=float, help="Latitude value (e.g. -45.0).")
+    parser.add_argument("lon", type=float, help="Longitude value (e.g. 51.2).")
     parser.add_argument(
         "start_time",
         help="Start date of timeseries in YYYY-MM-DD format (e.g. 2015-05-24).",
